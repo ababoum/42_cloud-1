@@ -1,0 +1,90 @@
+version: "3"
+
+############### DOCKERS ##################
+services:
+
+## MySQL database ##
+  mysql:
+    container_name: mysql
+    image: mysql:inception
+    build:
+      context: requirements/mysql/
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks: ['inception_network']
+    
+## Website ##
+  wordpress:
+    container_name: wordpress
+    image: wordpress:inception
+    build:
+      context: requirements/wordpress/
+      args:
+        - WORDPRESS_DB_NAME=${MYSQL_DATABASE}
+        - WORDPRESS_DB_USER=${MYSQL_USER}
+        - WORDPRESS_DB_PASSWORD=${MYSQL_PASSWORD}
+        - WORDPRESS_DB_HOST=${DB_HOST}
+        - DOMAIN_NAME=${DOMAIN_NAME}
+    networks: ['inception_network']
+    restart: always
+    depends_on:
+      - mysql
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - TITLE=${TITLE}
+      - WP_ADMIN_USER=${WP_ADMIN_USER}
+      - WP_ADMIN_PASSWORD=${WP_ADMIN_PASSWORD}
+      - WP_ADMIN_MAIL=${WP_ADMIN_MAIL}
+      - WP_USER=${WP_USER}
+      - WP_PASSWORD=${WP_PASSWORD}
+    volumes:
+      - website:/var/www/html
+
+## Server ##
+  nginx:
+    container_name: nginx
+    image: nginx:inception
+    build: requirements/nginx/
+    ports:
+      - "443:443"
+    volumes:
+      - website:/var/www/html
+    depends_on:
+      - wordpress
+    networks: ['inception_network']
+    restart: always
+
+## Adminer [BONUS] ##
+  adminer:
+    container_name: adminer
+    image: adminer
+    environment:
+      - ADMINER_DEFAULT_SERVER=mysql
+    depends_on:
+      - mysql
+    ports:
+      - 8080:8080
+    restart: always
+    networks: ['inception_network']
+
+############### NETWORKS ##################
+
+networks:
+  inception_network:
+    name: inception_network
+
+
+############### VOLUMES ##################
+
+volumes:
+  website:
+    driver_opts:
+      type: none
+      device: /home/mna/data/website
+      o: bind
+  database:
+    driver_opts:
+      type: none
+      device: /home/mna/data/database
+      o: bind

@@ -1,0 +1,5 @@
+scaleway_cloud:
+  hosts:
+    vm420:
+      ansible_host: 51.159.188.187
+      ansible_user: root
